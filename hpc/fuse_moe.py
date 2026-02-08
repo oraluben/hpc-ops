@@ -14,14 +14,14 @@ def count_and_gather(
     intermediate_size: int,
     num_seq_per_group_avg: int,
 ) -> Tuple[
-    torch.Tensor,
-    torch.Tensor,
-    torch.Tensor,
-    torch.Tensor,
-    torch.Tensor,
-    torch.Tensor,
-    torch.Tensor,
-    torch.Tensor,
+    Tensor,
+    Tensor,
+    Tensor,
+    Tensor,
+    Tensor,
+    Tensor,
+    Tensor,
+    Tensor,
 ]:
     """Sorts and aggregates token based on expert assignments for MoE layers.
 

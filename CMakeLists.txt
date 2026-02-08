@@ -1,4 +1,10 @@
 cmake_minimum_required(VERSION 3.27 FATAL_ERROR)
+
+# Detect CUDA toolkit: tries host installation first, then falls back to
+# pip-installed packages (env WITH_PIP_CUDA_TOOLCHAIN or auto-detect).
+# Must be included before project() so CMAKE_CUDA_COMPILER is set.
+include(${CMAKE_CURRENT_LIST_DIR}/cmake/FindPipCUDAToolkit.cmake)
+
 project(hpc_ops LANGUAGES CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -10,6 +16,7 @@ set(CMAKE_CUDA_ARCHITECTURES "90a")
 
 find_package(CUDAToolkit REQUIRED)
 include_directories(${CUDAToolkit_INCLUDE_DIRS})
+link_directories(${CUDAToolkit_LIBRARY_DIR} ${CUDAToolkit_LIBRARY_DIR}/stubs)
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -75,17 +82,35 @@ set_target_properties(
   CUDA_ARCHITECTURES "90a"
 )
 
+if(NOT DEFINED HPC_GIT_HASH_STR OR HPC_GIT_HASH_STR STREQUAL "")
+  execute_process(
+    COMMAND git rev-parse --short=7 HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE HPC_GIT_HASH_STR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+  )
+  if(NOT HPC_GIT_HASH_STR)
+    set(HPC_GIT_HASH_STR "unknown")
+  endif()
+endif()
+
+if(NOT DEFINED HPC_VERSION_STR OR HPC_VERSION_STR STREQUAL "")
+  set(HPC_VERSION_STR "0.0.1-dev")
+endif()
+
 target_compile_definitions(
   _C PRIVATE
   _GLIBCXX_USE_CXX11_ABI=1
-  HPC_GIT_HASH_STR=${HPC_GIT_HASH_STR}
-  HPC_VERSION_STR=${HPC_VERSION_STR}
+  HPC_GIT_HASH_STR="${HPC_GIT_HASH_STR}"
+  HPC_VERSION_STR="${HPC_VERSION_STR}"
 )
 
 target_compile_options(
   _C PRIVATE
   $<$<COMPILE_LANGUAGE:CUDA>:
     -Werror=all-warnings
+    -Wno-error=deprecated-declarations
     -lineinfo
     --expt-relaxed-constexpr
     -std=c++17

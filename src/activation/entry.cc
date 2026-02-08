@@ -1,11 +1,14 @@
 // Copyright (C) 2026 Tencent.
 
 #include <cuda_runtime_api.h>
+#include <cuda_bf16.h>
+#include <cuda_fp8.h>
 
 #include <tvm/ffi/container/tensor.h>
 #include <tvm/ffi/extra/c_env_api.h>
 #include <tvm/ffi/function.h>
 
+#include <tvm/ffi/container/tuple.h>
 #include <tuple>
 #include <vector>
 
@@ -18,7 +21,7 @@ namespace activation {
 
 tvm::ffi::Tensor act_mul_and_quant_entry(const tvm::ffi::TensorView &input,
                                           const tvm::ffi::TensorView &scale, bool use_bf16_mul,
-                                          tvm::ffi::Optional<tvm::ffi::TensorView> output) {
+                                          tvm::ffi::Optional<tvm::ffi::Tensor> output) {
   auto stream = TVM_FFI_GET_CUDA_STREAM(input);
   auto device = input.device();
 
@@ -57,7 +60,7 @@ tvm::ffi::Tensor act_mul_and_quant_entry(const tvm::ffi::TensorView &input,
 tvm::ffi::Tensor masked_act_mul_and_quant_entry(const tvm::ffi::TensorView &input,
                                                  const tvm::ffi::TensorView &scale,
                                                  const tvm::ffi::TensorView &num_per_expert,
-                                                 tvm::ffi::Optional<tvm::ffi::TensorView> output) {
+                                                 tvm::ffi::Optional<tvm::ffi::Tensor> output) {
   auto stream = TVM_FFI_GET_CUDA_STREAM(input);
   auto device = input.device();
 
@@ -109,10 +112,10 @@ tvm::ffi::Tensor masked_act_mul_and_quant_entry(const tvm::ffi::TensorView &inpu
   return output_tensor;
 }
 
-std::tuple<tvm::ffi::Tensor, tvm::ffi::Tensor> masked_act_mul_and_blockwise_quant_entry(
+tvm::ffi::Tuple<tvm::ffi::Tensor, tvm::ffi::Tensor> masked_act_mul_and_blockwise_quant_entry(
     const tvm::ffi::TensorView &input, const tvm::ffi::TensorView &num_per_expert,
-    tvm::ffi::Optional<tvm::ffi::TensorView> output,
-    tvm::ffi::Optional<tvm::ffi::TensorView> output_scale) {
+    tvm::ffi::Optional<tvm::ffi::Tensor> output,
+    tvm::ffi::Optional<tvm::ffi::Tensor> output_scale) {
   auto stream = TVM_FFI_GET_CUDA_STREAM(input);
   auto device = input.device();
 
@@ -167,7 +170,7 @@ std::tuple<tvm::ffi::Tensor, tvm::ffi::Tensor> masked_act_mul_and_blockwise_quan
                                            num_per_expert_ptr, num_total_tokens,
                                            num_intermediate_size, num_tokens_per_expert, stream);
 
-  return std::make_tuple(output_tensor, output_scale_tensor);
+  return tvm::ffi::Tuple<tvm::ffi::Tensor, tvm::ffi::Tensor>(output_tensor, output_scale_tensor);
 }
 
 }  // namespace activation

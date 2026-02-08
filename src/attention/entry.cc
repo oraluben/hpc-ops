@@ -1,6 +1,7 @@
 // Copyright (C) 2026 Tencent.
 
 #include <cuda_runtime_api.h>
+#include <cuda_bf16.h>
 
 #include <tvm/ffi/container/tensor.h>
 #include <tvm/ffi/extra/c_env_api.h>
@@ -20,7 +21,7 @@ tvm::ffi::Tensor attention_prefill_bf16_entry(const tvm::ffi::TensorView &q,
                                                const tvm::ffi::TensorView &seqlens_q,
                                                const tvm::ffi::TensorView &cu_seqlens_q,
                                                int64_t max_seqlens_q,
-                                               tvm::ffi::Optional<tvm::ffi::TensorView> output) {
+                                               tvm::ffi::Optional<tvm::ffi::Tensor> output) {
   auto stream = TVM_FFI_GET_CUDA_STREAM(q);
   TVM_FFI_CHECK_CUDA(q);
   TVM_FFI_CHECK_CUDA(k);
@@ -74,7 +75,7 @@ tvm::ffi::Tensor attention_with_kvcache_prefill_bf16_entry(
     const tvm::ffi::TensorView &q, const tvm::ffi::TensorView &kcache,
     const tvm::ffi::TensorView &vcache, const tvm::ffi::TensorView &cu_seqlens_q,
     const tvm::ffi::TensorView &block_ids, const tvm::ffi::TensorView &seqlens_kvcache,
-    int64_t max_seqlens_q, tvm::ffi::Optional<tvm::ffi::TensorView> output) {
+    int64_t max_seqlens_q, tvm::ffi::Optional<tvm::ffi::Tensor> output) {
   auto stream = TVM_FFI_GET_CUDA_STREAM(q);
   TVM_FFI_CHECK_CUDA(q);
   TVM_FFI_CHECK_CUDA(kcache);
@@ -137,7 +138,7 @@ tvm::ffi::Tensor attention_with_kvcache_prefill_fp8_entry(
     const tvm::ffi::TensorView &vcache, const tvm::ffi::TensorView &qkscale,
     const tvm::ffi::TensorView &vscale, const tvm::ffi::TensorView &cu_seqlens_q,
     const tvm::ffi::TensorView &block_ids, const tvm::ffi::TensorView &seqlens_kvcache,
-    int64_t max_seqlens_q, tvm::ffi::Optional<tvm::ffi::TensorView> output) {
+    int64_t max_seqlens_q, tvm::ffi::Optional<tvm::ffi::Tensor> output) {
   auto stream = TVM_FFI_GET_CUDA_STREAM(q);
   TVM_FFI_CHECK_CUDA(q);
   TVM_FFI_CHECK_CUDA(kcache);
@@ -208,7 +209,7 @@ tvm::ffi::Tensor attention_decode_bf16_entry(const tvm::ffi::TensorView &q,
                                               const tvm::ffi::TensorView &block_ids,
                                               const tvm::ffi::TensorView &num_seq_kvcache,
                                               bool new_kv_included, bool use_splitk,
-                                              tvm::ffi::Optional<tvm::ffi::TensorView> output) {
+                                              tvm::ffi::Optional<tvm::ffi::Tensor> output) {
   auto stream = TVM_FFI_GET_CUDA_STREAM(q);
 
   TVM_FFI_CHECK_CUDA(q);
@@ -293,8 +294,8 @@ tvm::ffi::Tensor attention_decode_fp8_entry(
     const tvm::ffi::TensorView &vcache, const tvm::ffi::TensorView &block_ids,
     const tvm::ffi::TensorView &num_seq_kvcache, const tvm::ffi::TensorView &qscale,
     const tvm::ffi::TensorView &kscale, const tvm::ffi::TensorView &vscale, bool new_kv_included,
-    bool use_splitk, tvm::ffi::Optional<tvm::ffi::TensorView> split_flag,
-    tvm::ffi::Optional<tvm::ffi::TensorView> output) {
+    bool use_splitk, tvm::ffi::Optional<tvm::ffi::Tensor> split_flag,
+    tvm::ffi::Optional<tvm::ffi::Tensor> output) {
   auto stream = TVM_FFI_GET_CUDA_STREAM(q);
 
   TVM_FFI_CHECK_CUDA(q);

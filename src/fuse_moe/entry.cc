@@ -6,6 +6,7 @@
 #include <tvm/ffi/extra/c_env_api.h>
 #include <tvm/ffi/function.h>
 
+#include <tvm/ffi/container/tuple.h>
 #include <tuple>
 
 #include "tvm_ffi_utils.h"
@@ -15,7 +16,7 @@
 namespace hpc {
 namespace fuse_moe {
 
-std::tuple<tvm::ffi::Tensor, tvm::ffi::Tensor, tvm::ffi::Tensor, tvm::ffi::Tensor,
+tvm::ffi::Tuple<tvm::ffi::Tensor, tvm::ffi::Tensor, tvm::ffi::Tensor, tvm::ffi::Tensor,
            tvm::ffi::Tensor, tvm::ffi::Tensor, tvm::ffi::Tensor, tvm::ffi::Tensor,
            tvm::ffi::Tensor>
 count_and_gather_entry(const tvm::ffi::TensorView &x, const tvm::ffi::TensorView &topk_ids,
@@ -72,13 +73,15 @@ count_and_gather_entry(const tvm::ffi::TensorView &x, const tvm::ffi::TensorView
                          hidden_size, intermediate_size, num_topk, num_expert, rank_ep,
                          num_seq_per_group_avg, stream);
 
-  return std::make_tuple(gate_up_input, gate_up_output, topk_pos, seqlens, cu_seqlens, tiles,
-                         cu_tiles, gate_up_tmas, dowm_tmas);
+  return tvm::ffi::Tuple<tvm::ffi::Tensor, tvm::ffi::Tensor, tvm::ffi::Tensor, tvm::ffi::Tensor,
+                         tvm::ffi::Tensor, tvm::ffi::Tensor, tvm::ffi::Tensor, tvm::ffi::Tensor,
+                         tvm::ffi::Tensor>(gate_up_input, gate_up_output, topk_pos, seqlens,
+                                           cu_seqlens, tiles, cu_tiles, gate_up_tmas, dowm_tmas);
 }
 
 tvm::ffi::Tensor reduce_entry(const tvm::ffi::TensorView &x, const tvm::ffi::TensorView &topk_pos,
                                const tvm::ffi::TensorView &topk_scale,
-                               tvm::ffi::Optional<tvm::ffi::TensorView> shared_output) {
+                               tvm::ffi::Optional<tvm::ffi::Tensor> shared_output) {
   auto stream = TVM_FFI_GET_CUDA_STREAM(x);
   TVM_FFI_CHECK_CUDA(x);
   TVM_FFI_CHECK_CUDA(topk_pos);
@@ -125,7 +128,7 @@ tvm::ffi::Tensor fuse_moe_pertensor_fp8_entry(
     const tvm::ffi::TensorView &down_weight, const tvm::ffi::TensorView &gate_up_scale,
     const tvm::ffi::TensorView &down_scale, const tvm::ffi::TensorView &act_and_mul_scale,
     const tvm::ffi::TensorView &topk_ids, const tvm::ffi::TensorView &topk_scale,
-    tvm::ffi::Optional<tvm::ffi::TensorView> shared_output, int64_t rank_ep,
+    tvm::ffi::Optional<tvm::ffi::Tensor> shared_output, int64_t rank_ep,
     int64_t num_expert_total, bool use_bf16_mul) {
   auto stream = TVM_FFI_GET_CUDA_STREAM(x);
 
@@ -229,7 +232,7 @@ tvm::ffi::Tensor fuse_moe_blockwise_fp8_entry(
     const tvm::ffi::TensorView &gate_up_weight_scale,
     const tvm::ffi::TensorView &down_weight, const tvm::ffi::TensorView &down_weight_scale,
     const tvm::ffi::TensorView &topk_ids, const tvm::ffi::TensorView &topk_scale,
-    tvm::ffi::Optional<tvm::ffi::TensorView> shared_output, int64_t rank_ep,
+    tvm::ffi::Optional<tvm::ffi::Tensor> shared_output, int64_t rank_ep,
     int64_t num_expert_total) {
   auto stream = TVM_FFI_GET_CUDA_STREAM(x);
 

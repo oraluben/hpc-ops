@@ -44,12 +44,14 @@ constexpr int64_t int32_code = encode_dlpack_dtype(dl_int32);
 
 inline tvm::ffi::Tensor tvm_ffi_empty(std::vector<int64_t> shape, DLDataType dtype,
                                        DLDevice device) {
-  return tvm::ffi::Tensor::FromEnvAlloc(TVMFFIEnvTensorAlloc, shape, dtype, device);
+  tvm::ffi::ShapeView sv(shape.data(), shape.size());
+  return tvm::ffi::Tensor::FromEnvAlloc(TVMFFIEnvTensorAlloc, sv, dtype, device);
 }
 
 inline tvm::ffi::Tensor tvm_ffi_zeros(std::vector<int64_t> shape, DLDataType dtype,
                                        DLDevice device) {
-  auto t = tvm::ffi::Tensor::FromEnvAlloc(TVMFFIEnvTensorAlloc, shape, dtype, device);
+  tvm::ffi::ShapeView sv(shape.data(), shape.size());
+  auto t = tvm::ffi::Tensor::FromEnvAlloc(TVMFFIEnvTensorAlloc, sv, dtype, device);
   cudaMemset(t.data_ptr(), 0, t.numel() * (dtype.bits / 8));
   return t;
 }

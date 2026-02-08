@@ -17,8 +17,8 @@ tvm::ffi::Tensor group_gemm_pertensor_fp8_entry(
     const tvm::ffi::TensorView &x, const tvm::ffi::TensorView &weight,
     const tvm::ffi::TensorView &seqlens, const tvm::ffi::TensorView &cu_seqlens,
     const tvm::ffi::TensorView &y_scale, int64_t num_seq_per_group_avg,
-    tvm::ffi::Optional<tvm::ffi::TensorView> output,
-    tvm::ffi::Optional<tvm::ffi::TensorView> tma_desc) {
+    tvm::ffi::Optional<tvm::ffi::Tensor> output,
+    tvm::ffi::Optional<tvm::ffi::Tensor> tma_desc) {
   auto stream = TVM_FFI_GET_CUDA_STREAM(x);
   TVM_FFI_CHECK_CUDA(x);
   TVM_FFI_CHECK_CUDA(weight);
@@ -79,8 +79,8 @@ tvm::ffi::Tensor group_gemm_blockwise_fp8_entry(
     const tvm::ffi::TensorView &x, const tvm::ffi::TensorView &weight,
     const tvm::ffi::TensorView &seqlens, const tvm::ffi::TensorView &cu_seqlens,
     const tvm::ffi::TensorView &x_scale, const tvm::ffi::TensorView &w_scale,
-    int64_t num_seq_per_group_avg, tvm::ffi::Optional<tvm::ffi::TensorView> output,
-    tvm::ffi::Optional<tvm::ffi::TensorView> tma_desc) {
+    int64_t num_seq_per_group_avg, tvm::ffi::Optional<tvm::ffi::Tensor> output,
+    tvm::ffi::Optional<tvm::ffi::Tensor> tma_desc) {
   auto stream = TVM_FFI_GET_CUDA_STREAM(x);
   TVM_FFI_CHECK_CUDA(x);
   TVM_FFI_CHECK_CUDA(weight);
@@ -145,7 +145,7 @@ tvm::ffi::Tensor group_gemm_blockwise_fp8_entry(
 tvm::ffi::Tensor reformat_x_scale_entry(const tvm::ffi::TensorView &x_scale,
                                          const tvm::ffi::TensorView &seqlens,
                                          const tvm::ffi::TensorView &cu_seqlens,
-                                         tvm::ffi::Optional<tvm::ffi::TensorView> out_x_scale,
+                                         tvm::ffi::Optional<tvm::ffi::Tensor> out_x_scale,
                                          int64_t num_seq_per_group_avg) {
   auto stream = TVM_FFI_GET_CUDA_STREAM(x_scale);
   TVM_FFI_CHECK_CUDA(x_scale);
