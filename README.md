@@ -58,7 +58,7 @@ pip install . -v
 Option A — pip toolchain in the current environment (use `--no-build-isolation`):
 
 ```bash
-pip install nvidia-cuda-nvcc nvidia-cuda-cccl
+pip install nvidia-cuda-nvcc nvidia-cuda-cccl scikit-build-core cmake ninja
 pip install . -v --no-build-isolation
 ```
 

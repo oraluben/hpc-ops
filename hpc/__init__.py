@@ -5,6 +5,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Dict
 
+import torch
 import tvm_ffi
 
 
@@ -13,6 +14,9 @@ _pkg_dir = Path(__file__).parent
 LIB_ROOT = _pkg_dir.parent / "build"
 if not LIB_ROOT.exists():
     LIB_ROOT = _pkg_dir / "ops"
+
+# Define the torch library for op registration (needed for torch.compile tracing)
+_torch_lib = torch.library.Library("hpc", "DEF")
 
 
 @lru_cache(maxsize=None)

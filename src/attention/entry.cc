@@ -59,10 +59,10 @@ tvm::ffi::Tensor attention_prefill_bf16_entry(const tvm::ffi::TensorView &q,
   using T = __nv_bfloat16;
   auto *y_ptr = reinterpret_cast<T *>(y.data_ptr());
 
-  int ldQ = q.stride(0);
-  int ldK = k.stride(0);
-  int ldV = v.stride(0);
-  int ldY = y.stride(0);
+  int ldQ = q.stride(0);  // num_head_q * num_dim_qk;
+  int ldK = k.stride(0);  // num_head_kv * num_dim_qk;
+  int ldV = v.stride(0);  // num_head_kv * num_dim_v;
+  int ldY = y.stride(0);  // num_head_q * num_dim_v;
 
   attention_prefill_bf16_async(y_ptr, q_ptr, k_ptr, v_ptr, seqlens_q_ptr, cu_seqlens_q_ptr,
                                tmas_ptr, num_batch, total_seq_q, max_seqlens_q, num_dim_qk,
@@ -120,10 +120,10 @@ tvm::ffi::Tensor attention_with_kvcache_prefill_bf16_entry(
   using T = __nv_bfloat16;
   auto *y_ptr = reinterpret_cast<T *>(y.data_ptr());
 
-  int ldQ = q.stride(0);
-  int ldK = kcache.stride(0);
-  int ldV = vcache.stride(0);
-  int ldY = y.stride(0);
+  int ldQ = q.stride(0);       // num_head_q * num_dim_qk;
+  int ldK = kcache.stride(0);  // num_head_kv * num_dim_qk;
+  int ldV = vcache.stride(0);  // num_head_kv * num_dim_v;
+  int ldY = y.stride(0);       // num_head_q * num_dim_v;
 
   attention_with_kvcache_prefill_bf16_async(
       y_ptr, q_ptr, kcache_ptr, vcache_ptr, cu_seqlens_q_ptr, block_ids_ptr, seqlens_kvcache_ptr,
@@ -189,10 +189,10 @@ tvm::ffi::Tensor attention_with_kvcache_prefill_fp8_entry(
   using T = __nv_bfloat16;
   auto *y_ptr = reinterpret_cast<T *>(y.data_ptr());
 
-  int ldQ = q.stride(0);
-  int ldK = kcache.stride(0);
-  int ldV = vcache.stride(0);
-  int ldY = y.stride(0);
+  int ldQ = q.stride(0);       // num_head_q * num_dim_qk;
+  int ldK = kcache.stride(0);  // num_head_kv * num_dim_qk;
+  int ldV = vcache.stride(0);  // num_head_kv * num_dim_v;
+  int ldY = y.stride(0);       // num_head_q * num_dim_v;
 
   attention_with_kvcache_prefill_fp8_async(
       y_ptr, q_ptr, kcache_ptr, vcache_ptr, qkscale_ptr, vscale_ptr, cu_seqlens_q_ptr,
@@ -251,6 +251,9 @@ tvm::ffi::Tensor attention_decode_bf16_entry(const tvm::ffi::TensorView &q,
   tvm::ffi::Tensor lse;
   tvm::ffi::Tensor split_out;
 
+  // small batch increase splitk number to maximize sm usage.
+  // 1. batch <= 32. split one request seqlenk to 16 parts.
+  // 2. batch > 32. split one request seqlenk to 4 parts.
   int splitk = 0;
   if (use_splitk) {
     if (num_batch <= 32) {
@@ -273,10 +276,10 @@ tvm::ffi::Tensor attention_decode_bf16_entry(const tvm::ffi::TensorView &q,
 
   auto *y_ptr = y.data_ptr();
 
-  int ldQ = q.stride(0);
+  int ldQ = q.stride(0);  // num_head_q * num_dim_qk;
   int ldK = kcache.stride(0);
   int ldV = vcache.stride(0);
-  int ldY = y.stride(0);
+  int ldY = y.stride(0);  // num_head_q * num_dim_v;
 
   bool running = attention_decode_bf16_async(
       y_ptr, lse_ptr, split_out_ptr, q_ptr, kcache_ptr, vcache_ptr, block_ids_ptr,
@@ -341,6 +344,7 @@ tvm::ffi::Tensor attention_decode_fp8_entry(
   tvm::ffi::Tensor lse;
   tvm::ffi::Tensor split_out_tensor;
 
+  // small batch increase splitk number to maximize sm usage.
   int splitk = 0;
   int splitk_min_len = 0;
 
@@ -385,10 +389,10 @@ tvm::ffi::Tensor attention_decode_fp8_entry(
 
   auto *y_ptr = y.data_ptr();
 
-  int ldQ = q.stride(0);
+  int ldQ = q.stride(0);  // num_head_q * num_dim_qk;
   int ldK = kcache.stride(0);
   int ldV = vcache.stride(0);
-  int ldY = y.stride(0);
+  int ldY = y.stride(0);  // num_head_q * num_dim_v;
 
   bool running = attention_decode_fp8_async(
       y_ptr, lse_ptr, split_out_ptr, q_ptr, kcache_ptr, vcache_ptr, block_ids_ptr,
