@@ -15,7 +15,7 @@ if not LIB_ROOT.exists():
     LIB_ROOT = _pkg_dir / "ops"
 
 
-@lru_cache(maxsize=0)
+@lru_cache(maxsize=None)
 def load_ffi_lib(name: str):
     """
     Libraries would be in `<repo>/build` or `<site-packages>/hpc/ops`.
