@@ -1,6 +1,9 @@
-import torch
 from torch import Tensor
 from typing import Tuple, Optional
+
+from hpc import load_ffi_lib
+
+_lib = load_ffi_lib("_C.so")
 
 
 def reformat_x_scale(
@@ -41,7 +44,7 @@ def reformat_x_scale(
         - The length of x_scale for each group must be aligned to multiple of 16/32/64 according to num_seq_per_group_avg
 
     """
-    return torch.ops.hpc.reformat_x_scale(
+    return _lib.reformat_x_scale(
         x_scale, seqlens, cu_seqlens, output, num_seq_per_group_avg
     )
 
@@ -91,7 +94,7 @@ def group_gemm_pertensor_fp8(
         - All input tensors must be on CUDA device
 
     """
-    return torch.ops.hpc.group_gemm_pertensor_fp8(
+    return _lib.group_gemm_pertensor_fp8(
         x, weight, seqlens, cu_seqlens, y_scale, num_seq_per_group_avg, output, tma_desc
     )
 
@@ -147,20 +150,6 @@ def group_gemm_blockwise_fp8(
         - The size of w_scale must be multiple of 4
 
     """
-    return torch.ops.hpc.group_gemm_blockwise_fp8(
+    return _lib.group_gemm_blockwise_fp8(
         x, weight, seqlens, cu_seqlens, x_scale, w_scale, num_seq_per_group_avg, output, tma_desc
     )
-
-
-@torch.library.register_fake("hpc::group_gemm_pertensor_fp8")
-def group_gemm_pertensor_fp8_fake(
-    x, weight, seqlens, cu_seqlens, y_scale, num_seq_per_group_avg, output, tma_des
-):
-    return torch.empty((x.shape[0], weight.shape[1]), dtype=torch.bfloat16)
-
-
-@torch.library.register_fake("hpc::group_gemm_blockwise_fp8")
-def group_gemm_blockwise_fp8_fake(
-    x, weight, seqlens, cu_seqlens, x_scale, w_scale, num_seq_per_group_avg, output, tma_des
-):
-    return torch.empty((x.shape[0], weight.shape[1]), dtype=torch.bfloat16)

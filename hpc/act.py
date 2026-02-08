@@ -1,7 +1,10 @@
 from typing import Optional, Tuple
 
-import torch
 from torch import Tensor
+
+from hpc import load_ffi_lib
+
+_lib = load_ffi_lib("_C.so")
 
 
 def act_mul_and_quant(
@@ -31,7 +34,7 @@ def act_mul_and_quant(
             Shape: [N, C]
             Dtype: fp8_e4m3
     """
-    return torch.ops.hpc.act_mul_and_quant(gate_up, scale, use_bf16_mul, output)
+    return _lib.act_mul_and_quant(gate_up, scale, use_bf16_mul, output)
 
 
 def masked_act_mul_and_quant(
@@ -64,7 +67,7 @@ def masked_act_mul_and_quant(
             Shape: [N, C]
             Dtype: fp8_e4m3
     """
-    return torch.ops.hpc.masked_act_mul_and_quant(gate_up, scale, num_per_expert, output)
+    return _lib.masked_act_mul_and_quant(gate_up, scale, num_per_expert, output)
 
 
 def masked_act_mul_and_blockwise_quant(
@@ -100,32 +103,6 @@ def masked_act_mul_and_blockwise_quant(
             Shape: [N, C / 128]
             Dtype: fp32
     """
-    return torch.ops.hpc.masked_act_mul_and_blockwise_quant(
+    return _lib.masked_act_mul_and_blockwise_quant(
         gate_up, num_per_expert, output, output_scale
-    )
-
-
-@torch.library.register_fake("hpc::act_mul_and_quant")
-def act_mul_and_quant_fake(input, scale, use_bf16_mul, output):
-    return torch.empty(
-        input.shape[0], input.shape[1] // 2, dtype=torch.float8_e4m3fn, device=input.device
-    )
-
-
-@torch.library.register_fake("hpc::masked_act_mul_and_quant")
-def masked_act_mul_and_quant_fake(input, scale, num_per_expert, output=None):
-    return torch.empty(
-        input.shape[0], input.shape[1] // 2, dtype=torch.float8_e4m3fn, device=input.device
-    )
-
-
-@torch.library.register_fake("hpc::masked_act_mul_and_blockwise_quant")
-def masked_act_mul_and_blockwise_quant_fake(input, num_per_expert, output=None, output_scale=None):
-    return (
-        torch.empty(
-            input.shape[0], input.shape[1] // 2, dtype=torch.float8_e4m3fn, device=input.device
-        ),
-        torch.empty(
-            input.shape[0], input.shape[1] // 2 // 128, dtype=torch.float32, device=input.device
-        ),
     )

@@ -1,6 +1,9 @@
-import torch
 from torch import Tensor
 from typing import Tuple
+
+from hpc import load_ffi_lib
+
+_lib = load_ffi_lib("_C.so")
 
 
 def count_and_gather(
@@ -78,7 +81,7 @@ def count_and_gather(
         - The function modifies the output buffers in-place when provided
         - Expert assignments in topk_ids should be in range [0, num_expert-1]
     """
-    return torch.ops.hpc.count_and_gather(x, topk_ids, num_expert, rank_ep, intermediate_size)
+    return _lib.count_and_gather(x, topk_ids, num_expert, rank_ep, intermediate_size)
 
 
 def reduce(
@@ -123,7 +126,7 @@ def reduce(
         - For best performance, hidden_size should be a multiple of 32
         - topk_pos values must be in range [0, total_num_seq-1]
     """
-    return torch.ops.hpc.reduce(x, topk_pos, topk_scale, shared_output)
+    return _lib.reduce(x, topk_pos, topk_scale, shared_output)
 
 
 def fuse_moe_pertensor_fp8(
@@ -199,7 +202,7 @@ def fuse_moe_pertensor_fp8(
         - Output scaling is applied to maintain numerical stability in FP8
     """
 
-    return torch.ops.hpc.fuse_moe_pertensor_fp8(
+    return _lib.fuse_moe_pertensor_fp8(
         x,
         gate_up_weight,
         down_weight,
@@ -276,7 +279,7 @@ def fuse_moe_blockwise_fp8(
             Shape: [num_tokens, hidden_size]
             Dtype: bfloat16
     """
-    return torch.ops.hpc.fuse_moe_blockwise_fp8(
+    return _lib.fuse_moe_blockwise_fp8(
         x,
         x_scale,
         gate_up_weight,
@@ -291,58 +294,3 @@ def fuse_moe_blockwise_fp8(
     )
 
 
-@torch.library.register_fake("hpc::count_and_gather")
-def count_and_gather_fake(
-    x, topk_ids, num_expert, rank_ep, intermediate_size, num_seq_per_group_avg
-):
-    return (
-        torch.empty((topk_ids.shape[0] * topk_ids.shape[1], x.shape[1]), dtype=torch.float8_e4m3fn),
-        torch.empty(
-            (topk_ids.shape[0] * topk_ids.shape[1], intermediate_size), dtype=torch.bfloat16
-        ),
-        torch.empty((topk_ids.shape[0] * topk_ids.shape[1]), dtype=torch.int32),
-        torch.empty((num_expert), dtype=torch.int32),
-        torch.empty((num_expert + 1), dtype=torch.int32),
-        torch.empty((num_expert), dtype=torch.int32),
-        torch.empty((num_expert + 1), dtype=torch.int32),
-        torch.empty((num_expert * 2 * 128), dtype=torch.int8),
-    )
-
-
-@torch.library.register_fake("hpc::reduce")
-def reduce_fake(x, topk_pos, topk_scale):
-    return torch.empty((topk_pos.shape[0], x.shape[1]), dtype=torch.bfloat16)
-
-
-@torch.library.register_fake("hpc::fuse_moe_pertensor_fp8")
-def fuse_moe_pertensor_fp8_fake(
-    x,
-    gate_up_weight,
-    down_weight,
-    gate_up_scale,
-    down_scale,
-    act_and_mul_scale,
-    topk_ids,
-    topk_scale,
-    rank_ep,
-    num_expert_total,
-    use_bf16_mul,
-):
-    return torch.empty((x.shape[0], x.shape[1]), dtype=torch.bfloat16)
-
-
-@torch.library.register_fake("hpc::fuse_moe_blockwise_fp8")
-def fuse_moe_blockwise_fp8_fake(
-    x: Tensor,
-    x_scale: Tensor,
-    gate_up_weight: Tensor,
-    gate_up_weight_scale: Tensor,
-    down_weight: Tensor,
-    down_weight_scale: Tensor,
-    topk_ids: Tensor,
-    topk_scale: Tensor,
-    rank_ep: int,
-    num_expert_total: int,
-    use_bf16_mul: bool = True,
-):
-    return torch.empty((x.shape[0], x.shape[1]), dtype=torch.bfloat16)

@@ -1,26 +1,60 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.27 FATAL_ERROR)
 project(hpc_ops LANGUAGES CXX CUDA)
 
-enable_language(CUDA)
-set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+set(CMAKE_CUDA_RUNTIME_LIBRARY None)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+set(CMAKE_CUDA_ARCHITECTURES "90a")
 
 find_package(CUDAToolkit REQUIRED)
-find_package(Python3 COMPONENTS Interpreter Development.Module REQUIRED)
+include_directories(${CUDAToolkit_INCLUDE_DIRS})
 
-file(GLOB_RECURSE SOURCES "src/*/*.cu" "src/*/*.cc")
-list(FILTER SOURCES EXCLUDE REGEX ".*test.*")
+find_program(CCACHE_FOUND ccache)
+if(CCACHE_FOUND)
+   set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_FOUND}")
+   set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_FOUND}")
+   set(CMAKE_CUDA_COMPILER_LAUNCHER "${CCACHE_FOUND}")
+endif()
 
+find_package(
+  Python
+  COMPONENTS Interpreter
+  REQUIRED
+)
+find_package(tvm_ffi CONFIG REQUIRED)
 
-add_library(_C MODULE ${SOURCES})
+if(NOT "${SKBUILD_SABI_VERSION}" STREQUAL "")
+  set(USE_SABI USE_SABI ${SKBUILD_SABI_VERSION})
+endif()
 
+include_directories(
+  ./
+  src/utils/include
+  3rd/cutlass/include
+)
+
+# Collect all CUDA source files (kernels)
+file(GLOB_RECURSE CUDA_SOURCES "src/*/*.cu")
+list(FILTER CUDA_SOURCES EXCLUDE REGEX ".*test.*")
+# Exclude built_json.cu as it's compiled separately
+list(FILTER CUDA_SOURCES EXCLUDE REGEX ".*/C/built_json\\.cu$")
+
+# Collect all CC source files (entry points)
+file(GLOB_RECURSE CC_SOURCES "src/*/*.cc")
+list(FILTER CC_SOURCES EXCLUDE REGEX ".*test.*")
+# Exclude C.cc placeholder
+list(FILTER CC_SOURCES EXCLUDE REGEX ".*/C/C\\.cc$")
+
+# Build all kernels as a single shared library
+add_library(_C SHARED ${CUDA_SOURCES} ${CC_SOURCES} src/C/built_json.cu)
+target_link_libraries(_C PRIVATE tvm_ffi::shared cuda cudart)
 set_target_properties(
   _C PROPERTIES
-  LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/
-
-  OUTPUT_NAME "_C"
   PREFIX ""
-  SUFFIX ".abi3.so"
-  CUDA_RUNTIME_LIBRARY "Shared"
+  SUFFIX ".so"
+  LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/
 
   CUDA_SEPARABLE_COMPILATION OFF
   CUDA_RESOLVE_DEVICE_SYMBOLS ON
@@ -29,7 +63,6 @@ set_target_properties(
   C_VISIBILITY_PRESET "hidden"
   CXX_VISIBILITY_PRESET "hidden"
   VISIBILITY_INLINES_HIDDEN ON
-  CUDA_VISIBILITY_PRESET "hidden"
 
   CXX_STANDARD 17
   CXX_STANDARD_REQUIRED ON
@@ -44,51 +77,9 @@ set_target_properties(
 
 target_compile_definitions(
   _C PRIVATE
-  Py_LIMITED_API=0x03090000
   _GLIBCXX_USE_CXX11_ABI=1
   HPC_GIT_HASH_STR=${HPC_GIT_HASH_STR}
   HPC_VERSION_STR=${HPC_VERSION_STR}
-)
-
-execute_process(
-  COMMAND python3 -c "
-from torch.utils.cpp_extension import include_paths
-print(';'.join(include_paths()), end='')
-"
-  OUTPUT_VARIABLE TORCH_INCLUDE_PATHS
-)
-
-execute_process(
-  COMMAND python3 -c "
-from torch.utils.cpp_extension import library_paths
-print(';'.join(library_paths()), end='')
-"
-  OUTPUT_VARIABLE TORCH_LIBRARY_PATHS
-)
-
-
-target_include_directories(
-  _C PRIVATE
-  ./
-  3rd/cutlass/include
-  ${CUDAToolkit_INCLUDE_DIRS}
-  ${TORCH_INCLUDE_PATHS}
-)
-
-target_link_directories(
-  _C PRIVATE
-  ${TORCH_LIBRARY_PATHS}
-)
-
-target_link_libraries(
-  _C PRIVATE
-  cuda
-  c10
-  torch
-  torch_cpu
-  cudart
-  c10_cuda
-  torch_cuda
 )
 
 target_compile_options(
@@ -108,7 +99,7 @@ target_compile_options(
     -g
     -fwrapv
     -Wall
-    -DTORCH_API_INCLUDE_EXTENSION_H
-    -DTORCH_EXTENSION_NAME=_C
   >
 )
+
+install(TARGETS _C LIBRARY DESTINATION hpc/ops)

@@ -5,6 +5,7 @@ docs/
 .vscode/
 *.egg-info/
 _C.*.so
+_C.so
 __pycache__
 *.ncu-rep
 *.nsys-rep
@@ -12,3 +13,4 @@ __pycache__
 *.log
 test
 version.py
+compile_commands.json

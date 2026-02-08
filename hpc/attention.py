@@ -1,5 +1,8 @@
-import torch
 from torch import Tensor
+
+from hpc import load_ffi_lib
+
+_lib = load_ffi_lib("_C.so")
 
 
 def attention_prefill_bf16(
@@ -52,7 +55,7 @@ def attention_prefill_bf16(
         - total_seq = sum(seqlens_q[ibatch] for ibatch in range(num_batch))
     """
 
-    return torch.ops.hpc.attention_prefill_bf16(
+    return _lib.attention_prefill_bf16(
         q, k, v, seqlens_q, cu_seqlens_q, max_seqlens_q, output
     )
 
@@ -113,7 +116,7 @@ def attention_with_kvcache_prefill_bf16(
         - total_seq = sum(seqlens_q[ibatch] for ibatch in range(num_batch))
     """
 
-    return torch.ops.hpc.attention_with_kvcache_prefill_bf16(
+    return _lib.attention_with_kvcache_prefill_bf16(
         q,
         kcache,
         vcache,
@@ -189,7 +192,7 @@ def attention_with_kvcache_prefill_fp8(
         - total_seq = sum(seqlens_q[ibatch] for ibatch in range(num_batch))
     """
 
-    return torch.ops.hpc.attention_with_kvcache_prefill_fp8(
+    return _lib.attention_with_kvcache_prefill_fp8(
         q,
         kcache,
         vcache,
@@ -258,7 +261,7 @@ def attention_decode_bf16(
         - The query and key tensors must have the same embedding dimension (num_dim_qk)
         - The batch size (num_batch) must be consistent across all input tensors
     """
-    return torch.ops.hpc.attention_decode_bf16(
+    return _lib.attention_decode_bf16(
         q, kcache, vcache, block_ids, num_seq_kvcache, new_kv_included, splitk, output
     )
 
@@ -332,7 +335,7 @@ def attention_decode_fp8(
         - The query and key tensors must have the same embedding dimension (num_dim_qk)
         - The batch size (num_batch) must be consistent across all input tensors
     """
-    return torch.ops.hpc.attention_decode_fp8(
+    return _lib.attention_decode_fp8(
         q,
         kcache,
         vcache,
@@ -346,56 +349,3 @@ def attention_decode_fp8(
         split_flag,
         output,
     )
-
-
-@torch.library.register_fake("hpc::attention_prefill_bf16")
-def attention_prefill_bf16_fake(q, k, v, seqlens_q, cu_seqlens_q, max_seqlens_q, output):
-    return torch.empty_like(q)
-
-
-@torch.library.register_fake("hpc::attention_with_kvcache_prefill_bf16")
-def attention_with_kvcache_prefill_bf16_fake(
-    q, kcache, vcache, cu_seqlens_q, block_ids, seqlens_kvcache, max_seqlens_q, output
-):
-    return torch.empty_like(q)
-
-
-@torch.library.register_fake("hpc::attention_with_kvcache_prefill_fp8")
-def attention_with_kvcache_prefill_fp8_fake(
-    q,
-    kcache,
-    vcache,
-    qkscale,
-    vscale,
-    cu_seqlens_q,
-    block_ids,
-    seqlens_kvcache,
-    max_seqlens_q,
-    output,
-):
-    return torch.empty_like(q)
-
-
-@torch.library.register_fake("hpc::attention_decode_bf16")
-def attention_decode_bf16_fake(
-    q, kcache, vcache, block_ids, num_seq_kvcache, new_kv_included, splitk, output
-):
-    return torch.empty_like(q)
-
-
-@torch.library.register_fake("hpc::attention_decode_fp8")
-def attention_decode_fp8_fake(
-    q,
-    kcache,
-    vcache,
-    block_ids,
-    num_seq_kvcache,
-    qscale,
-    kscale,
-    vscale,
-    new_kv_included,
-    splitk,
-    split_flag,
-    output,
-):
-    return torch.empty_like(q)
